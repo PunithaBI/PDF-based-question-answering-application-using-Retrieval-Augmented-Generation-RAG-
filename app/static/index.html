@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Evidence Explorer</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-icon">P</div>
+                <div>
+                    <h2>PDF Evidence</h2>
+                    <span>EXPLORER</span>
+                </div>
+            </div>
+
+            <nav class="navigation">
+                <button class="nav-item active" data-view="overview">Overview</button>
+                <button class="nav-item" data-view="documents">Documents</button>
+                <button class="nav-item" data-view="ask">Ask a question</button>
+                <button class="nav-item" data-view="history">Question history</button>
+                <button class="nav-item" data-view="evaluation">Evaluation</button>
+                <button class="nav-item" data-view="activity">System activity</button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <span class="status-dot"></span>
+                <span id="connectionStatus">Checking API...</span>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="topbar">
+                <div>
+                    <p class="eyebrow">DOCUMENT INTELLIGENCE WORKSPACE</p>
+                    <h1 id="pageTitle">Overview</h1>
+                </div>
+                <div class="topbar-right">
+                    <span class="local-badge">LOCAL WORKSPACE</span>
+                    <button class="button secondary" id="refreshButton">Refresh</button>
+                </div>
+            </header>
+
+            <div id="notice" class="notice hidden"></div>
+
+            <!-- OVERVIEW -->
+            <section class="view active" id="view-overview">
+                <div class="welcome-panel">
+                    <div>
+                        <p class="eyebrow">PDF KNOWLEDGE ASSISTANT</p>
+                        <h2>Explore your documents with evidence-backed answers.</h2>
+                        <p>Upload a PDF, retrieve relevant passages and ask questions grounded in its content.</p>
+                        <button class="button primary" data-go="documents">Upload a document</button>
+                    </div>
+                    <div class="welcome-symbol">PDF<span>+</span></div>
+                </div>
+
+                <div class="stats-grid">
+                    <article class="stat-card">
+                        <span>Documents</span>
+                        <strong id="statDocuments">—</strong>
+                        <small>Indexed documents</small>
+                    </article>
+                    <article class="stat-card">
+                        <span>Pages processed</span>
+                        <strong id="statPages">—</strong>
+                        <small>Extracted PDF pages</small>
+                    </article>
+                    <article class="stat-card">
+                        <span>Searchable chunks</span>
+                        <strong id="statChunks">—</strong>
+                        <small>Stored in Qdrant</small>
+                    </article>
+                    <article class="stat-card">
+                        <span>Questions answered</span>
+                        <strong id="statQuestions">—</strong>
+                        <small>Saved question history</small>
+                    </article>
+                </div>
+
+                <div class="content-grid">
+                    <article class="panel">
+                        <div class="panel-heading">
+                            <div>
+                                <p class="eyebrow">YOUR LIBRARY</p>
+                                <h3>Recent documents</h3>
+                            </div>
+                            <button class="text-button" data-go="documents">View all</button>
+                        </div>
+                        <div id="recentDocuments" class="empty-state">
+                            No documents uploaded yet.
+                        </div>
+                    </article>
+
+                    <article class="panel">
+                        <div class="panel-heading">
+                            <div>
+                                <p class="eyebrow">RECENT ACTIVITY</p>
+                                <h3>Latest questions</h3>
+                            </div>
+                            <button class="text-button" data-go="history">View history</button>
+                        </div>
+                        <div id="recentQuestions" class="empty-state">
+                            No questions asked yet.
+                        </div>
+                    </article>
+                </div>
+            </section>
+
+            <!-- DOCUMENTS -->
+            <section class="view" id="view-documents">
+                <div class="section-intro">
+                    <div>
+                        <p class="eyebrow">DOCUMENT LIBRARY</p>
+                        <h2>Upload and manage PDFs</h2>
+                        <p>Documents are extracted, divided into chunks and indexed for retrieval.</p>
+                    </div>
+                </div>
+
+                <article class="panel upload-panel">
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-icon">↑</div>
+                        <h3>Upload a PDF document</h3>
+                        <p>Select a PDF file from your computer. Maximum size: 50 MB.</p>
+                        <input type="file" id="pdfFile" accept=".pdf,application/pdf" hidden>
+                        <button class="button primary" id="chooseFileButton">Choose PDF</button>
+                        <p id="selectedFile" class="muted">No file selected</p>
+                    </div>
+                    <div class="upload-progress hidden" id="uploadProgress">
+                        <div class="spinner"></div>
+                        <span>Extracting, chunking and indexing document...</span>
+                    </div>
+                </article>
+
+                <article class="panel">
+                    <div class="panel-heading">
+                        <div>
+                            <p class="eyebrow">INDEXED CONTENT</p>
+                            <h3>Document library</h3>
+                        </div>
+                        <span class="muted" id="documentCountLabel">0 documents</span>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Document</th>
+                                    <th>Pages</th>
+                                    <th>Chunks</th>
+                                    <th>Embedding model</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="documentsTable">
+                                <tr><td colspan="6" class="empty-state">No documents available.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+
+                <article class="panel hidden" id="documentDetailPanel">
+                    <div class="panel-heading">
+                        <div>
+                            <p class="eyebrow">DOCUMENT INSPECTOR</p>
+                            <h3 id="documentDetailTitle">Document details</h3>
+                        </div>
+                        <button class="button secondary" id="closeDocumentDetail">Close</button>
+                    </div>
+                    <div id="documentDetailContent"></div>
+                </article>
+            </section>
+
+            <!-- ASK -->
+            <section class="view" id="view-ask">
+                <div class="section-intro">
+                    <p class="eyebrow">RETRIEVAL-AUGMENTED QUESTION ANSWERING</p>
+                    <h2>Ask your document</h2>
+                    <p>Answers are generated from retrieved PDF passages, with page and chunk references.</p>
+                </div>
+
+                <article class="panel question-panel">
+                    <label for="questionDocument">Choose a document</label>
+                    <select id="questionDocument">
+                        <option value="">Select an indexed document</option>
+                    </select>
+
+                    <label for="questionInput">Your question</label>
+                    <textarea id="questionInput" rows="4" maxlength="3000"
+                        placeholder="Ask a specific question about the selected PDF..."></textarea>
+
+                    <div class="question-controls">
+                        <label for="topK">Evidence passages</label>
+                        <select id="topK">
+                            <option value="3">3 passages</option>
+                            <option value="5" selected>5 passages</option>
+                            <option value="10">10 passages</option>
+                            <option value="15">15 passages</option>
+                            <option value="20">20 passages</option>
+                        </select>
+                        <button class="button primary" id="askButton">Ask question</button>
+                    </div>
+
+                    <div id="answerLoading" class="loading-message hidden">
+                        <div class="spinner"></div>
+                        Retrieving evidence and generating an answer...
+                    </div>
+                </article>
+
+                <article class="panel hidden" id="answerPanel">
+                    <div class="panel-heading">
+                        <div>
+                            <p class="eyebrow">GENERATED RESPONSE</p>
+                            <h3>Answer</h3>
+                        </div>
+                        <span class="status-pill success" id="answerStatus">Completed</span>
+                    </div>
+                    <div id="answerText" class="answer-text"></div>
+                    <div class="answer-metadata" id="answerMetadata"></div>
+                    <div class="panel-divider"></div>
+                    <div class="panel-heading">
+                        <div>
+                            <p class="eyebrow">RETRIEVED SOURCE MATERIAL</p>
+                            <h3>Evidence passages</h3>
+                        </div>
+                        <span class="muted" id="sourceCount"></span>
+                    </div>
+                    <div id="evidenceList"></div>
+                </article>
+            </section>
+
+            <!-- HISTORY -->
+            <section class="view" id="view-history">
+                <div class="section-intro">
+                    <p class="eyebrow">QUESTION RECORDS</p>
+                    <h2>Question history</h2>
+                    <p>Review previous answers and their retrieved evidence.</p>
+                </div>
+                <article class="panel">
+                    <div class="panel-heading">
+                        <h3>Previous questions</h3>
+                        <button class="button secondary" id="refreshHistory">Refresh history</button>
+                    </div>
+                    <div id="historyList" class="empty-state">No question history available.</div>
+                </article>
+            </section>
+
+            <!-- EVALUATION -->
+            <section class="view" id="view-evaluation">
+                <div class="section-intro">
+                    <p class="eyebrow">RETRIEVAL QUALITY</p>
+                    <h2>Evaluation workspace</h2>
+                    <p>
+                        Evaluate retrieved evidence from saved question history
+                        using a selected date range and retrieval cutoff.
+                    </p>
+                </div>
+
+                <article class="panel">
+                    <div class="evaluation-controls">
+                        <div>
+                            <p class="eyebrow">HISTORICAL QUESTION EVALUATION</p>
+                            <h3>Run retrieval evaluation</h3>
+                            <p class="muted">
+                                Evaluates questions saved in question history.
+                                The existing retrieved evidence is evaluated;
+                                questions are not silently rerun.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="evaluation-date-controls">
+                        <div class="evaluation-field">
+                            <label for="evaluationStartDate">Start date</label>
+                            <input
+                                type="date"
+                                id="evaluationStartDate"
+                                required
+                            >
+                        </div>
+
+                        <div class="evaluation-field">
+                            <label for="evaluationEndDate">End date</label>
+                            <input
+                                type="date"
+                                id="evaluationEndDate"
+                                required
+                            >
+                        </div>
+
+                        <div class="evaluation-field">
+                            <label for="evaluationLimit">Maximum questions</label>
+                            <select id="evaluationLimit">
+                                <option value="10">10 questions</option>
+                                <option value="25">25 questions</option>
+                                <option value="50" selected>50 questions</option>
+                                <option value="100">100 questions</option>
+                                <option value="250">250 questions</option>
+                                <option value="500">500 questions</option>
+                            </select>
+                        </div>
+
+                        <div class="evaluation-field">
+                            <label for="evaluationK">Retrieval cutoff (K)</label>
+                            <select id="evaluationK">
+                                <option value="3">K = 3</option>
+                                <option value="5" selected>K = 5</option>
+                                <option value="10">K = 10</option>
+                                <option value="15">K = 15</option>
+                                <option value="20">K = 20</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="inline-controls">
+                        <button
+                            class="button primary"
+                            id="runEvaluationButton"
+                        >
+                            Run evaluation
+                        </button>
+                    </div>
+
+                    <div id="evaluationLoading" class="loading-message hidden">
+                        <div class="spinner"></div>
+                        Evaluating saved questions and retrieved evidence...
+                    </div>
+
+                    <div id="evaluationResult"></div>
+                </article>
+
+                <article class="panel">
+                    <div class="panel-heading">
+                        <div>
+                            <p class="eyebrow">SAVED REPORTS</p>
+                            <h3>Previous evaluation runs</h3>
+                        </div>
+                        <button class="button secondary" id="refreshEvaluations">
+                            Refresh
+                        </button>
+                    </div>
+                    <div id="evaluationRuns" class="empty-state">
+                        No evaluation runs yet.
+                    </div>
+                </article>
+            </section>
+
+            <!-- ACTIVITY -->
+            <section class="view" id="view-activity">
+                <div class="section-intro">
+                    <p class="eyebrow">OBSERVABILITY AND AUDIT</p>
+                    <h2>System activity</h2>
+                    <p>Review locally recorded document, question and evaluation events.</p>
+                </div>
+                <article class="panel">
+                    <div class="panel-heading">
+                        <h3>Audit events</h3>
+                        <button class="button secondary" id="refreshActivity">Refresh</button>
+                    </div>
+                    <div id="activityList" class="empty-state">No activity recorded yet.</div>
+                </article>
+            </section>
+
+            <footer class="footer">
+                PDF Evidence Explorer <span>•</span> Local document intelligence workspace
+            </footer>
+        </main>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.venv/
+venv/
+env/
+
+# Local data and uploaded documents
+data/uploads/*
+data/artifacts/*
+data/logs/*
+data/qdrant/*
+
+# Keep folder structure
+!data/uploads/.gitkeep
+!data/artifacts/.gitkeep
+!data/logs/.gitkeep
+!data/qdrant/.gitkeep
+
+# Model caches
+.cache/
+huggingface/
+models/
+
+# IDE and operating system
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.log
